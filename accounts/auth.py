@@ -2,7 +2,6 @@ import jwt
 import datetime
 from rest_framework import exceptions
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
-from .serializers import UserSerializer
 from .models import User
 
 

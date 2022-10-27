@@ -7,26 +7,56 @@ from rest_framework.views import APIView
 from rest_framework.views import Response
 from accounts import serializers
 from django.core.mail import send_mail
-
-
 from accounts.auth import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
 from .models import User, UserToken, Reset
-from accounts.serializers import UserSerializer
+from accounts.serializers import UserSerializer,StudentSerializer,TeacherSerializer
 from rest_framework.authentication import get_authorization_header
 # Create your views here.
 
+# ===========================================================================================================
+# class RegisterAPIView(APIView):
+#     authentication_classes = [JWTAuthentication]
 
+#     def post(self, request):
+#         data = request.data
+#         if data['password'] != data['password_confirm']:
+#             raise exceptions.APIException('Both passwords are not same!')
+#         print(data)
+#         serializer = UserSerializer(data=data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(serializer.data)
+# ============================================================================================================
+# {'email': 'laheri@gmail.com', 'password': 'krunal', 'password_confirm': 'krunal'}
+# user = User.objects.get(email=data['email'])
 class RegisterAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
+    # authentication_classes = [JWTAuthentication]
 
     def post(self, request):
         data = request.data
         if data['password'] != data['password_confirm']:
             raise exceptions.APIException('Both passwords are not same!')
-        serializer = UserSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        user_data={'email': data['email'], 'password': data['password'], 'password_confirm': data['password_confirm'],'is_student': data['is_student'],'is_teacher':data['is_teacher']}
+        print(user_data)
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user_serializer.save()
+        if data['is_student']=="True":
+            user_student = User.objects.get(email=data['email'])
+            student_data={'student':user_student,'name':data['name'],'admission_date':data['admission_date']}
+            print(student_data)
+            student_serializer = StudentSerializer(data=student_data)
+            student_serializer.is_valid(raise_exception=True)
+            student_serializer.save()
+        if data['is_teacher']=="True":
+            user_teacher = User.objects.get(email=data['email'])
+            teacher_data={'teacher':user_teacher,'name':data['name'],'joining_date':data['joining_date']}
+            print(teacher_data)
+            teacher_serializer = TeacherSerializer(data=teacher_data)
+            teacher_serializer.is_valid(raise_exception=True)
+            teacher_serializer.save()
+        return Response(user_serializer.data)
+
 
 
 class LoginAPIView(APIView):
@@ -104,11 +134,12 @@ class ForgotAPIView(APIView):
 
         url = 'http://127.0.0.1:8000/reset/' + token
 
-        send_mail('Password Reset',
-                  f'Click here to reset your password'+url, 'laherikrunal10@gmail.com', [request.data['email']], fail_silently=False)
+        # send_mail('Password Reset',
+        #           f'Click here to reset your password'+url, 'laherikrunal10@gmail.com', [request.data['email']], fail_silently=False)
         return Response({
             'message': 'success',
-            'token': token
+            # 'token': token
+            'token': url
         })
 
 

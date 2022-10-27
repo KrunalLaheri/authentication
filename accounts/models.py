@@ -8,8 +8,22 @@ class User(AbstractUser):
     username = None
     email = models.CharField(max_length=255, unique=True)
     password = models.CharField(max_length=128)
+    is_student = models.BooleanField()
+    is_teacher = models.BooleanField()
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+
+
+class Student(models.Model):
+    student = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    admission_date = models.DateField()
+
+
+class Teacher(models.Model):
+    teacher = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    joining_date = models.DateField()
 
 
 class UserToken(models.Model):
