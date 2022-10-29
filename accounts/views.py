@@ -1,34 +1,18 @@
 import datetime
 import random
 import string
-from urllib import response
 from rest_framework import exceptions
 from rest_framework.views import APIView
 from rest_framework.views import Response
-from accounts import serializers
 from django.core.mail import send_mail
 from accounts.auth import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
-from .models import User, UserToken, Reset
+from .models import User, UserToken, Reset,Student,Teacher
 from accounts.serializers import UserSerializer,StudentSerializer,TeacherSerializer
-from rest_framework.authentication import get_authorization_header
 # Create your views here.
 
 # ===========================================================================================================
-# class RegisterAPIView(APIView):
-#     authentication_classes = [JWTAuthentication]
-
-#     def post(self, request):
-#         data = request.data
-#         if data['password'] != data['password_confirm']:
-#             raise exceptions.APIException('Both passwords are not same!')
-#         print(data)
-#         serializer = UserSerializer(data=data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return Response(serializer.data)
+# Write dummy code here
 # ============================================================================================================
-# {'email': 'laheri@gmail.com', 'password': 'krunal', 'password_confirm': 'krunal'}
-# user = User.objects.get(email=data['email'])
 class RegisterAPIView(APIView):
     # authentication_classes = [JWTAuthentication]
 
@@ -70,20 +54,18 @@ class LoginAPIView(APIView):
             raise exceptions.AuthenticationFailed('Invalid credentials...')
 
         if not user.check_password(password):
-            raise exceptions.AuthenticationFailed('Invalid password...')
-
+            raise exceptions.AuthenticationFailed('Invalid password...')           
+        
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
         UserToken.objects.create(user_id=user.id, refresh_token=refresh_token,
                                  expired_at=datetime.datetime.utcnow()+datetime.timedelta(days=7))
-
         response = Response()
         response.set_cookie(key='refresh_token',
                             value=refresh_token, httponly=True)
         response.data = {
             'token': access_token,
-
         }
 
         return response
@@ -91,11 +73,19 @@ class LoginAPIView(APIView):
 
 class UserAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-
     def get(self, request):
         serializer = UserSerializer(request.user)
-        return Response(serializer.data)
-
+        data=serializer.data
+        if data['is_student']==True:
+            student=Student.objects.get(student_id=request.user.id)
+            student_serializer=StudentSerializer(instance=student).data
+            data.update(student_serializer)
+            
+        if data['is_teacher']==True:
+            teacher=Teacher.objects.get(teacher_id=request.user.id)
+            teacher_serializer=TeacherSerializer(instance=teacher).data
+            data.update(teacher_serializer)
+        return Response(data)
 
 class RefreshAPIView(APIView):
     def post(self, request):
@@ -113,10 +103,12 @@ class LogoutAPIView(APIView):
 
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
+        access_token = request.COOKIES.get('access_token')
         print(request.COOKIES.get('refresh_token'))
+        print(access_token)
         UserToken.objects.filter(refresh_token=refresh_token).delete()
         response = Response()
-        response.delete_cookie(key='refresh_token')
+        response.delete_cookie('refresh_token')
         response.data = {
             'message': 'success'
         }
